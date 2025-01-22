@@ -1,101 +1,169 @@
+"use client";
 import Image from "next/image";
+import { useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [prompt, setPrompt] = useState("");
+  const [story, setStory] = useState(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const generateStoryAndImages = async () => {
+    setIsLoading(true);
+    try {
+      // First, generate the story
+      const storyResponse = await fetch("/api/story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const storyData = await storyResponse.json();
+
+      if (!storyResponse.ok) {
+        throw new Error(storyData.error || "Failed to generate story");
+      }
+
+      setStory(storyData);
+
+      // Then, generate images for each panel
+      const imagePromises = storyData.comics.map(async (panel: any) => {
+        const imageResponse = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: panel.prompt }),
+        });
+        const imageData = await imageResponse.json();
+
+        if (!imageResponse.ok) {
+          throw new Error(imageData.error || "Failed to generate image");
+        }
+
+        return imageData.imageUrl;
+      });
+
+      const generatedImages = await Promise.all(imagePromises);
+      setImages(generatedImages);
+    } catch (error) {
+      console.error("Error:", error);
+      alert(error.message);
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 p-8">
+      <main className="max-w-2xl mx-auto flex flex-col items-center gap-8">
+        <h1 className="text-4xl font-bold text-purple-800 dark:text-purple-200 mt-12 text-center">
+          Bubble&apos;s Adventure
+        </h1>
+
+        <div className="w-full space-y-4">
+          <textarea
+            className="w-full p-4 rounded-lg border-2 border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white resize-none h-32"
+            placeholder="Describe your comic story... (e.g., 'in outer space')"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+
+          <button
+            onClick={generateStoryAndImages}
+            disabled={isLoading || !prompt}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            {isLoading ? "Generating..." : "Generate Story"}
+          </button>
         </div>
+
+        {isLoading && (
+          <div className="text-purple-600 dark:text-purple-300">
+            Creating your story and images...
+          </div>
+        )}
+
+        {story && (
+          <div className="mt-8 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {story.comics.map((panel: any, index: number) => (
+                <div
+                  key={index}
+                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg"
+                >
+                  <h3 className="font-bold text-lg mb-3">Panel {index + 1}</h3>
+                  {images[index] && (
+                    <div className="relative w-full aspect-square mb-3">
+                      <Image
+                        src={images[index]}
+                        alt={`Panel ${index + 1}`}
+                        fill
+                        className="rounded-lg object-cover"
+                      />
+                    </div>
+                  )}
+                  <p className="text-gray-800 dark:text-gray-200 text-base font-medium">
+                    {panel.caption}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
+
+/* Original Image Generation Code
+export default function Home() {
+  const [prompt, setPrompt] = useState("");
+  const [generatedImage, setGeneratedImage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const generateComic = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      console.log("response: ", data);
+      console.log("Response received, URL length:", data.imageUrl?.length);
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to generate image");
+      }
+
+      if (data.imageUrl) {
+        setGeneratedImage(data.imageUrl);
+      } else {
+        throw new Error("No image URL received");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert(error.message);
+    }
+    setIsLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 p-8">
+      <main className="max-w-2xl mx-auto flex flex-col items-center gap-8">
+        {generatedImage && (
+          <div className="mt-8 rounded-lg overflow-hidden shadow-xl">
+            <img
+              src={generatedImage}
+              alt="Generated comic panel"
+              className="w-full h-auto"
+              onError={(e) => {
+                console.error("Image failed to load:", e);
+                alert("Failed to load the generated image");
+              }}
+            />
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+*/
