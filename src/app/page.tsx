@@ -2,9 +2,19 @@
 import Image from "next/image";
 import { useState } from "react";
 
+// Add these interfaces at the top of the file, after the imports
+interface ComicPanel {
+  prompt: string;
+  caption: string;
+}
+
+interface StoryResponse {
+  comics: ComicPanel[];
+}
+
 export default function Home() {
   const [prompt, setPrompt] = useState("");
-  const [story, setStory] = useState(null);
+  const [story, setStory] = useState<StoryResponse | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,7 +36,7 @@ export default function Home() {
       setStory(storyData);
 
       // Then, generate images for each panel
-      const imagePromises = storyData.comics.map(async (panel: any) => {
+      const imagePromises = storyData.comics.map(async (panel: ComicPanel) => {
         const imageResponse = await fetch("/api/generate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -83,7 +93,7 @@ export default function Home() {
         {story && (
           <div className="mt-8 w-full">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {story.comics.map((panel: any, index: number) => (
+              {story.comics.map((panel: ComicPanel, index: number) => (
                 <div
                   key={index}
                   className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg"

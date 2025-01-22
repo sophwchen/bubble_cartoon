@@ -49,11 +49,10 @@ export async function POST(req: Request) {
     }
     const story_json = JSON.parse(content);
     return NextResponse.json(story_json);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Detailed error:", error);
-    return NextResponse.json(
-      { error: error.message || "Failed to generate story" },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to generate story";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
