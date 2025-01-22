@@ -53,9 +53,11 @@ export default function Home() {
 
       const generatedImages = await Promise.all(imagePromises);
       setImages(generatedImages);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Error:", error);
-      alert(error.message);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+      alert(errorMessage);
     }
     setIsLoading(false);
   };
