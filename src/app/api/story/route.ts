@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     const systemPrompt = `
     Create a 3-panel comic story about a dog's adventure. For each panel, provide:
     1. An image generation prompt that includes 'Bubble white dog' and ends with 'warm colors'
-    2. A caption that refers to the dog as 'Bubble'
+    2. A caption that refers to the dog as 'Bubble', the dog is a female
 
     Format the output as JSON with this structure:
     {

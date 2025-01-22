@@ -17,9 +17,13 @@ export default function Home() {
   const [story, setStory] = useState<StoryResponse | null>(null);
   const [images, setImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
 
   const generateStoryAndImages = async () => {
     setIsLoading(true);
+    setIsComplete(false);
+    setImages([]); // Reset images
+    setStory(null); // Reset story
     try {
       // First, generate the story
       const storyResponse = await fetch("/api/story", {
@@ -53,6 +57,7 @@ export default function Home() {
 
       const generatedImages = await Promise.all(imagePromises);
       setImages(generatedImages);
+      setIsComplete(true);
     } catch (error: unknown) {
       console.error("Error:", error);
       const errorMessage =
@@ -64,15 +69,15 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 p-8">
-      <main className="max-w-2xl mx-auto flex flex-col items-center gap-8">
+      <main className="max-w-5xl mx-auto flex flex-col items-center gap-8">
         <h1 className="text-4xl font-bold text-purple-800 dark:text-purple-200 mt-12 text-center">
           Bubble&apos;s Adventure
         </h1>
 
-        <div className="w-full space-y-4">
+        <div className="w-full max-w-2xl space-y-4">
           <textarea
-            className="w-full p-4 rounded-lg border-2 border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white resize-none h-32"
-            placeholder="Describe your comic story... (e.g., 'in outer space')"
+            className="w-full p-4 rounded-lg border-2 border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white resize-none h-24"
+            placeholder="Describe your comic story... (e.g., 'in outer space, at a concert, etc.')"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
@@ -92,22 +97,23 @@ export default function Home() {
           </div>
         )}
 
-        {story && (
+        {isComplete && story && (
           <div className="mt-8 w-full">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {story.comics.map((panel: ComicPanel, index: number) => (
                 <div
                   key={index}
-                  className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg"
+                  className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg"
                 >
                   <h3 className="font-bold text-lg mb-3">Panel {index + 1}</h3>
                   {images[index] && (
-                    <div className="relative w-full aspect-square mb-3">
+                    <div className="relative w-full aspect-square mb-4">
                       <Image
                         src={images[index]}
                         alt={`Panel ${index + 1}`}
                         fill
                         className="rounded-lg object-cover"
+                        sizes="(max-width: 768px) 100vw, 33vw"
                       />
                     </div>
                   )}

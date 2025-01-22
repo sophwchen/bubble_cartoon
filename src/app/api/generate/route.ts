@@ -23,7 +23,7 @@ export async function POST(req: Request) {
       {
         input: {
           prompt,
-          num_inference_steps: 28,
+          num_inference_steps: 30,
           guidance_scale: 7.5,
           model: "dev",
           //   useFileOutput: false,
